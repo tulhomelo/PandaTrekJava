@@ -13,16 +13,16 @@ public class Main {
     private JPanel panel;
     private JButton btnAddOrganizacao;
     private JTable table;
+    private JScrollPane scrollPane;
+    private DefaultTableModel tableModel;
 
     Connection conexao;
 
     private ArrayList<Organizacao> organizacoes;
-    private ArrayList<Evento> eventos;
 
     public Main() {
         // Inicializa a lista de organizações recuperando dados do banco de dados
         organizacoes = new ArrayList<>();
-        eventos = new ArrayList<>();
 
         BancoDados bd = new BancoDados();
         conexao = bd.getConexao();
@@ -31,6 +31,7 @@ public class Main {
 
         frame = new JFrame("PandaTrek");
         panel = new JPanel();
+
         btnAddOrganizacao = new JButton("Adicionar Organização");
         btnAddOrganizacao.addActionListener(new ActionListener() {
             @Override
@@ -41,13 +42,13 @@ public class Main {
 
         // Configuração da tabela para exibir organizações
         table = new JTable();
+        scrollPane = new JScrollPane(table);
+
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("ID");
         model.addColumn("Nome");
         model.addColumn("Data Cadastro");
         model.addColumn("Ativo");
-        model.addColumn("Excluído");
-        model.addColumn("Data Exclusão");
         model.addColumn("Descrição");
 
         // Preenche a tabela com os dados recuperados do banco de dados
@@ -57,14 +58,89 @@ public class Main {
                     org.getNome(),
                     org.getDataCadastro(),
                     org.getAtivo(),
-                    org.getExcluido(),
-                    org.getDataExclusao(),
                     org.getDescricao()
             });
         }
         table.setModel(model);
 
-        panel.setLayout(new BorderLayout());
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) { // Duplo clique
+                    int row = table.getSelectedRow();
+                    if (row != -1) { // Nenhuma linha selecionada
+                        // Obtém os dados da linha selecionada
+                        String id = table.getValueAt(row, 0).toString();
+                        String nome = table.getValueAt(row, 1).toString();
+                        String ativo = table.getValueAt(row, 3).toString();
+                        String descricao = table.getValueAt(row, 4).toString();
+
+                        JFrame telaEdicao = new JFrame("Editar Organização");
+                        JPanel panelEdicao = new JPanel();
+                        panelEdicao.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+                        panelEdicao.setLayout(new GridLayout(8, 2, 10, 10));
+
+                        // Campos preenchidos com os dados da linha selecionada para edição
+                        JLabel labelId = new JLabel("Id:");
+                        JTextField campoId = new JTextField(id);
+                        campoId.setEditable(false);
+
+                        JLabel labelNome = new JLabel("Nome:");
+                        JTextField campoNome = new JTextField(nome);
+
+                        JLabel labelAtivo = new JLabel("Ativo (1 para sim, 0 para não):");
+                        JTextField campoAtivo = new JTextField(ativo);
+
+                        JLabel labelDescricao = new JLabel("Descrição:");
+                        JTextField campoDescricao = new JTextField(descricao);
+
+                        JButton btnSalvarEdicao = new JButton("Salvar Edição");
+                        panelEdicao.add(labelId);
+                        panelEdicao.add(campoId);
+                        panelEdicao.add(labelNome);
+                        panelEdicao.add(campoNome);
+                        panelEdicao.add(labelAtivo);
+                        panelEdicao.add(campoAtivo);
+                        panelEdicao.add(labelDescricao);
+                        panelEdicao.add(campoDescricao);
+
+                        panelEdicao.add(btnSalvarEdicao);
+
+                        telaEdicao.add(panelEdicao);
+                        telaEdicao.setSize(400, 300);
+                        telaEdicao.setVisible(true);
+                        telaEdicao.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+                        btnSalvarEdicao.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                try {
+                                    String query = "UPDATE organizacao SET nome = ?, ativo = ?, excluido = ?, descricao = ? WHERE id = ?";
+                                    PreparedStatement ps = conexao.prepareStatement(query);
+                                    ps.setString(1, campoNome.getText());
+                                    ps.setInt(2, Integer.valueOf(ativo));
+                                    ps.setInt(3, 0); // Não exclusão
+                                    ps.setString(4, campoDescricao.getText());
+                                    ps.setInt(5, Integer.valueOf(id)); // Define o ID para a cláusula WHERE
+                                    ps.executeUpdate();
+                                    ps.close();
+
+                                    JOptionPane.showMessageDialog(null, "Organização atualizada com sucesso!");
+
+                                    telaEdicao.dispose(); // Fecha a janela após edição
+                                    atualizarTabelaOrganizacoes();
+                                } catch (SQLException ex) {
+                                    System.out.println("Erro ao atualizar organização: " + ex.getMessage());
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panel.setLayout(new BorderLayout(8, 8));
         panel.add(btnAddOrganizacao, BorderLayout.NORTH);
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -77,7 +153,7 @@ public class Main {
     private void recuperarOrganizacoes() {
         try {
             // Consulta SQL para recuperar registros da tabela organizacao
-            String query = "SELECT * FROM organizacao o ORDER BY o.nome";
+            String query = "SELECT * FROM organizacao o ORDER BY o.id";
             PreparedStatement ps = conexao.prepareStatement(query);
             ResultSet rs = ps.executeQuery();
 
@@ -102,50 +178,35 @@ public class Main {
 
     private void adicionarOrganizacao() {
         JFrame telaOrganizacao = new JFrame("Adicionar Organização");
-        telaOrganizacao.setLayout(new GridLayout(8, 2, 10, 10));
-
-        JLabel labelId = new JLabel("ID:");
-        JTextField campoId = new JTextField();
-        campoId.setEditable(false);
+        JPanel panelOrganizacao = new JPanel();
+        panelOrganizacao.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panelOrganizacao.setLayout(new GridLayout(8, 2, 10, 10));
 
         JLabel labelNome = new JLabel("Nome:");
         JTextField campoNome = new JTextField();
 
-        JLabel labelDataCadastro = new JLabel("Data Cadastro:");
-        JTextField campoDataCadastro = new JTextField();
-        campoDataCadastro.setEditable(false);
+        JLabel labelAtivo = new JLabel("Ativo (1 para sim, 0 para não):");
+        JTextField campoAtivo = new JTextField("1");
 
-        JLabel labelAtivo = new JLabel("Ativo:");
-        JTextField campoAtivo = new JTextField();
-
-        JLabel labelExcluido = new JLabel("Excluído:");
-        JTextField campoExcluido = new JTextField();
-
-        JLabel labelDataExclusao = new JLabel("Data Exclusão:");
-        JTextField campoDataExclusao = new JTextField();
-        campoDataExclusao.setEditable(false);
+        JLabel labelExcluido = new JLabel("Excluído (1 para sim, 0 para não):");
+        JTextField campoExcluido = new JTextField("0");
 
         JLabel labelDescricao = new JLabel("Descrição:");
         JTextField campoDescricao = new JTextField();
 
         JButton btnSalvar = new JButton("Salvar");
 
-        telaOrganizacao.add(labelId);
-        telaOrganizacao.add(campoId);
-        telaOrganizacao.add(labelNome);
-        telaOrganizacao.add(campoNome);
-        telaOrganizacao.add(labelDataCadastro);
-        telaOrganizacao.add(campoDataCadastro);
-        telaOrganizacao.add(labelAtivo);
-        telaOrganizacao.add(campoAtivo);
-        telaOrganizacao.add(labelExcluido);
-        telaOrganizacao.add(campoExcluido);
-        telaOrganizacao.add(labelDataExclusao);
-        telaOrganizacao.add(campoDataExclusao);
-        telaOrganizacao.add(labelDescricao);
-        telaOrganizacao.add(campoDescricao);
-        telaOrganizacao.add(btnSalvar);
+        panelOrganizacao.add(labelNome);
+        panelOrganizacao.add(campoNome);
+        panelOrganizacao.add(labelAtivo);
+        panelOrganizacao.add(campoAtivo);
+        panelOrganizacao.add(labelExcluido);
+        panelOrganizacao.add(campoExcluido);
+        panelOrganizacao.add(labelDescricao);
+        panelOrganizacao.add(campoDescricao);
+        panelOrganizacao.add(btnSalvar);
 
+        telaOrganizacao.add(panelOrganizacao);
         telaOrganizacao.setSize(400, 300);
         telaOrganizacao.setVisible(true);
         telaOrganizacao.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -159,7 +220,7 @@ public class Main {
 
                     PreparedStatement ps = conexao.prepareStatement(query);
                     ps.setString(1, campoNome.getText());
-                    ps.setTimestamp(2, new Timestamp(new Date().getTime()));
+                    ps.setTimestamp(2, new Timestamp(new Date().getTime())); // Momento atual
                     ps.setInt(3, Integer.parseInt(campoAtivo.getText()));
                     ps.setInt(4, Integer.parseInt(campoExcluido.getText()));
                     ps.setString(5, campoDescricao.getText());
@@ -169,7 +230,7 @@ public class Main {
 
                     JOptionPane.showMessageDialog(null, "Organização adicionada com sucesso!");
 
-                    telaOrganizacao.dispose(); // Fecha a janela após adicionar a organização
+                    telaOrganizacao.dispose(); // Fecha a janela após adição
                     atualizarTabelaOrganizacoes();
                 } catch (SQLException ex) {
                     System.out.println("Erro ao adicionar organização: " + ex.getMessage());
