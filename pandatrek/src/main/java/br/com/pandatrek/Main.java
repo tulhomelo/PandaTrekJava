@@ -139,8 +139,8 @@ public class Main {
             }
         });
 
-        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        panel.setLayout(new BorderLayout(8, 8));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 12, 12, 12));
+        panel.setLayout(new BorderLayout(12, 12));
         panel.add(btnAddOrganizacao, BorderLayout.NORTH);
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -148,6 +148,8 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
         frame.setVisible(true);
+
+        bd.desconectar();
     }
 
     private void recuperarOrganizacoes() {

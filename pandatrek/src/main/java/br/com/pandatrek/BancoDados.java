@@ -9,7 +9,7 @@ public class BancoDados {
 
     static String host = "localhost";
     static String porta = "3306";
-    static String schema = "pandatrek";
+    static String schema = "pandatrek"; // Nome do BD
     static String usuario = "root";
     static String senha = "root";
 

@@ -1,8 +1,6 @@
 package br.com.pandatrek;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class Organizacao {
 
@@ -13,8 +11,6 @@ public class Organizacao {
     private int excluido;
     private Date dataExclusao;
     private String descricao;
-
-    private List<Evento> eventos = new ArrayList<>();
 
     public Organizacao(String nome, String descricao, int ativo) {
         this.nome = nome;
@@ -87,14 +83,6 @@ public class Organizacao {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
-    }
-
-    public List<Evento> getEventos() {
-        return eventos;
-    }
-
-    public void setEventos(List<Evento> eventos) {
-        this.eventos = eventos;
     }
 
     @Override
