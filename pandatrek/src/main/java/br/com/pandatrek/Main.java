@@ -13,8 +13,6 @@ public class Main {
     private JPanel panel;
     private JButton btnAddOrganizacao;
     private JTable table;
-    private JScrollPane scrollPane;
-    private DefaultTableModel tableModel;
 
     Connection conexao;
 
@@ -42,7 +40,6 @@ public class Main {
 
         // Configuração da tabela para exibir organizações
         table = new JTable();
-        scrollPane = new JScrollPane(table);
 
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("ID");
